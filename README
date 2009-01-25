@@ -69,8 +69,8 @@ o libmemcache - needed to compile mod_count_memcookie
 ====================================================================
 
 1) extract files from an archive
-tar zxf mod_count_memcookie-<VERSION>.tar.gz
-cd mod_count_memcookie
+tar zxf modcountmemcookie-<VERSION>.tar.gz
+cd modcountmemcookie-<VERSION>
 
 2) open Makefile and modify ap_basedir variable
 vi Makefile
