@@ -137,7 +137,7 @@ o CountMemCookieMemcachedTableSize
 
 o CountMemCookieSetHTTPHeader
 
-    Description: Set to \"On\" to set count information to http header. \"Off\" by default
+    Description: Set to "On" to set count information to http header. "Off" by default
     Syntax: CountMemCookieSetHTTPHeader On/Off
     Context: server config, virtual host, directory, .htaccess
     Status: Extension
