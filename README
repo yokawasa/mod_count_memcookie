@@ -1,0 +1,202 @@
+/*
+ * README
+ * mod_count_memcookie.c - User Access Counter with Cookies and the Memcached
+ */
+                        __                           __
+   ____ ___  ____  ____/ /   _________  __  ______  / /_
+  / __ `__ \/ __ \/ __  /   / ___/ __ \/ / / / __ \/ __/
+ / / / / / / /_/ / /_/ /   / /__/ /_/ / /_/ / / / / /_
+/_/ /_/ /_/\____/\__,_/________/\____/\__,_/_/ /_/\__/_____
+                     /_____/                        /_____/
+                                              __   _
+   ____ ___  ___  ____ ___  _________  ____  / /__(_)__
+  / __ `__ \/ _ \/ __ `__ \/ ___/ __ \/ __ \/ //_/ / _ \
+ / / / / / /  __/ / / / / / /__/ /_/ / /_/ / ,< / /  __/
+/_/ /_/ /_/\___/_/ /_/ /_/\___/\____/\____/_/|_/_/\___/
+
+
+====================================================================
+* Introduction
+====================================================================
+
+mod_count_memcookie is Apache module to provide a counter with
+cookies to see how many times a user visited a site in a certain
+period of time.
+
+The couter is stored in memcached, and the user's cookie string is
+used as the key to determine the basic identification of the counter
+to be cached. Every time the user hit the site, the user's counter is
+retrieved from memcached by specifying the user cookie string, and
+is stored back again after the counter is incremented. If the
+counter does not exist in memcached, then the counter is
+initialized to 1.
+
+As one of prerequisites of mod_count_memcookie, it needs to be used
+in conjunction with a cookie creating module, such as mod_usertrack,
+or some other substitution applications since it uses the user's
+cookie string for the identification of the user and its' counter
+value stored in memcached.
+
+On the plus side, it allows more than one Apache server to share
+the same cached data, thus fits very much in scale-out architecture
+system. In addtion, the counter info can be applied for simple spam
+proxy server by, for example, blocking the user with over the
+counter limit of the site.
+
+
+====================================================================
+* Download
+====================================================================
+
+http://code.google.com/p/modcountmemcookie/downloads/list
+
+====================================================================
+* Prerequisites
+====================================================================
+
+o libevent - used by memcached
+  http://www.monkey.org/~provos/libevent/
+
+o memcached - used as serssion and count storage
+  http://www.danga.com/memcached/
+
+o libmemcache - needed to compile mod_count_memcookie
+  http://people.freebsd.org/~seanc/libmemcache/
+
+
+====================================================================
+* Build and Install
+====================================================================
+
+1) extract files from an archive
+tar zxf mod_count_memcookie-<VERSION>.tar.gz
+cd mod_count_memcookie
+
+2) open Makefile and modify ap_basedir variable
+vi Makefile
+ ap_basedir=/PATH-TO-APACHE-BASE
+
+3) make and install
+make
+sudo make install
+
+
+====================================================================
+* Configuration Directives
+====================================================================
+
+All the directives below may be specified in anywhere like Server,
+VirtualHost, Location, and so on.
+
+o CountMemCookieEnabled
+
+    Description: set "On" to enable the module, "Off" to disable.
+    Syntax: CountMemCookieEnabled On/Off
+    Context: server config, virtual host, directory, .htaccess
+    Status: Extension
+    Module: mod_count_memcookie
+
+o CountMemCookieName
+
+    Description: set the name of cookie to be used for user's identification.
+    Syntax: CountMemCookieName cookieName
+    Context: server config, virtual host, directory, .htaccess
+    Status: Extension
+    Module: mod_count_memcookie
+
+o CountMemCookieMemcachedAddrPort
+
+    Description: Liste of the memcached address. each address is ip or host
+            adresse(s) and port ':' separated. The addresses are ',' coma separated.
+            For example:
+            192.168.1.1:11211,192.168.1.2:11211
+    Syntax: CountMemCookieMemcachedAddrPort host1:port1,host2:port2,..
+    Context: server config, virtual host, directory, .htaccess
+    Status: Extension
+    Module: mod_count_memcookie
+
+
+o CountMemCookieMemcachedObjectExpiry
+
+    Description: set the expiry time of session object in memcached in seconds
+    Syntax: CountMemCookieMemcachedObjectExpiry  number(second)
+    Context: server config, virtual host, directory, .htaccess
+    Status: Extension
+    Module: mod_count_memcookie
+
+
+o CountMemCookieMemcachedTableSize
+
+    Description: set max number of element in session table of memcached.
+            100 by default.
+    Syntax: CountMemCookieMemcachedTableSize number
+    Context: server config, virtual host, directory, .htaccess
+    Status: Extension
+    Module: mod_count_memcookie
+
+
+o CountMemCookieSetHTTPHeader
+
+    Description: Set to \"On\" to set count information to http header. \"Off\" by default
+    Syntax: CountMemCookieSetHTTPHeader On/Off
+    Context: server config, virtual host, directory, .htaccess
+    Status: Extension
+    Module: mod_count_memcookie
+
+
+====================================================================
+* Sample Configuration
+====================================================================
+
+1) load module
+LoadModule count_memcookie_module modules/mod_count_memcookie.so
+
+2) add directives below
+CountMemCookieEnabled on
+CountMemCookieName  apache
+CountMemCookieMemcachedAddrPort  127.0.0.1:11211
+CountMemCookieMemcachedObjectExpiry 1000
+CountMemCookieMemcachedTableSize  100
+CountMemCookieSetHTTPHeader on
+
+see also: sample.conf
+
+
+====================================================================
+* Logging Counter Info
+====================================================================
+
+By setting CountMemCookieSetHTTPHeader directive to "On", the counter
+nfo is added to http header table with the key named "count_memcookie".
+Therefore, you can add the counter info to the "CustomLog" by adding
+the %{count_memcookie}i string to log format string of CustomLog directive.
+
+ex.
+CustomLog logs/clicklog "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" \"%{count_memcookie}i\"
+
+
+====================================================================
+* Application Sample
+====================================================================
+
+mod_count_memcookie adds the counter info to apache subprocess_env
+table with the key named "count_memcookie". Therefore, the counter
+info can be applied for scripts language like this below:
+
+o php
+<?php
+ $count = getenv ( "count_memcookie" );
+?>
+
+o perl
+#! /usr/bin/perl
+my $count = $ENV{ "count_memcookie" };
+
+see also scripts/sample.php, sample.pl
+
+
+====================================================================
+* Authors
+====================================================================
+Yoichi Kawasaki <yokawasa@gmail.com>
+
