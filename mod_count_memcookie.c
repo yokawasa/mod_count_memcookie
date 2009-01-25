@@ -1,5 +1,8 @@
 /*
- * mod_count_memcookie.c - ******************* Module for Apache2.X
+ * mod_count_memcookie.c - Memcached Counter of User's Page View Based on User Cookie
+ *
+ * Copyright (C) 2009 Yoichi Kawasaki All rights reserved.
+ * www.yk55.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,8 +15,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Copyright 2009 Yoichi Kawasaki <yokawasa@gmail.com>
  */
 
 #include "httpd.h"
@@ -38,12 +39,11 @@ typedef struct {
     char* mem_addr;
     int mem_table_size;
     int set_header;
-    int encode_header;
 } count_memcookie_config;
 
 void set_default(count_memcookie_config *conf)
 {
-    if(conf){
+    if(!conf){
         return;
     }
     conf->enabled = 0;
@@ -52,7 +52,6 @@ void set_default(count_memcookie_config *conf)
     conf->mem_addr = NULL;
     conf->mem_table_size = 100;
     conf->set_header = 0;
-    conf->encode_header = 0;
 }
 
 static void* count_memcookie_create_dir_config(apr_pool_t *p, char *d)
@@ -76,7 +75,7 @@ static void* count_memcookie_merge_dir_config(apr_pool_t *p,
     conf->mem_addr   = (nc->mem_addr?nc->mem_addr:pc->mem_addr);
     conf->mem_table_size   = (nc->mem_table_size?nc->mem_table_size:pc->mem_table_size);
     conf->set_header   = (nc->set_header?nc->set_header:pc->set_header);
-    conf->encode_header = (nc->encode_header?nc->encode_header:pc->encode_header);
+
     return conf;
 }
 
@@ -111,7 +110,8 @@ static char* find_cookie(request_rec *r, const char* cookie_name)
 }
 
 static int set_memcookie_counter(request_rec *r, const char* key,
-                    const char* mem_addr, int mem_expiry, int mem_table_size ) {
+                    const char* mem_addr, int mem_expiry, int mem_table_size )
+{
     ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, MODTAG "set_memcookie_counter start!");
     int count = MEM_MIN_COUNT;
     char* countstr = NULL;
@@ -137,14 +137,16 @@ static int set_memcookie_counter(request_rec *r, const char* key,
     if( !res->val ) {
         ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, MODTAG "no value with key=%s", key);
         mc_req_free( req );
-        countstr=(char*) apr_palloc( r->pool, 100 );
-        snprintf(countstr, 100, "%d", count );
+
+        countstr=apr_psprintf(r->pool, "%d", count);
+
         ret = mc_set(
                 mem,
                 (char*)key, strlen(key),
                 countstr, strlen(countstr),
                 mem_expiry,
                 0);
+
         if( ret != 0 ){
             ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r,
                             MODTAG "memcache set failure key=%s", key);
@@ -159,18 +161,19 @@ static int set_memcookie_counter(request_rec *r, const char* key,
     /* increment count */
     count++;
 
-    countstr=(char*) apr_palloc( r->pool, 100 );
-    snprintf(countstr, 100, "%d", count );
+    countstr=apr_psprintf(r->pool, "%d", count);
     ret = mc_set(
              mem,
              (char*)key, strlen(key),
              countstr, strlen(countstr),
              mem_expiry,
              0);
+
     if( ret != 0 ){
         ap_log_rerror(APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r,
                          MODTAG "memcache set failure key=%s", key);
     }
+
     mc_free(mem);
     return count;
 }
@@ -180,11 +183,6 @@ static int count_memcookie_access_checker(request_rec *r)
     ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, MODTAG "count_memcookie_access_checker start!");
 
     count_memcookie_config *conf = ap_get_module_config(r->per_dir_config, &count_memcookie_module);
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "conf enabled: %d", conf->enabled);
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "conf cookie_name: %s", conf->cookie_name);
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "conf mem_expiry: %d", conf->mem_expiry);
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "conf mem_addr: %s", conf->mem_addr);
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "conf mem_table_size: %d", conf->mem_table_size);
 
     char* cookie;
     char* b64cookiebuf;
@@ -193,7 +191,7 @@ static int count_memcookie_access_checker(request_rec *r)
     char* curcountstr;
 
     /* Do not run in subrequests */
-    if (!conf->enabled) {
+    if (!conf || !conf->enabled) {
         return DECLINED;
     }
     /* check given info */
@@ -219,6 +217,7 @@ static int count_memcookie_access_checker(request_rec *r)
     }
 
     cookie = find_cookie(r, conf->cookie_name);
+
     if (!cookie || strlen(cookie) < 1 ) {
         ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, MODTAG "Cookie not found!");
         return DECLINED;
@@ -237,12 +236,14 @@ static int count_memcookie_access_checker(request_rec *r)
     curcount = set_memcookie_counter(r,b64cookiebuf,
             conf->mem_addr, conf->mem_expiry, conf->mem_table_size );
 
-    curcountstr=(char*) apr_palloc(r->pool, 100);
-    snprintf(curcountstr, 100, "%d", curcount);
-    /* set cur count in ENV & Header */
-    apr_table_setn(r->subprocess_env, "X_COUNT_MEMCOOKIE", curcountstr);
-    apr_table_setn(r->headers_in,     "X-Count-MemCookie", curcountstr);
+    curcountstr = apr_psprintf(r->pool, "%d", curcount );
 
+    /* set cur count in subprocess_env table for script language */
+    apr_table_setn(r->subprocess_env, "count_memcookie", curcountstr);
+    /* set cur count in http header */
+    if (conf->set_header) {
+        apr_table_set(r->headers_in, "count_memcookie", curcountstr);
+    }
     return OK;
 }
 
@@ -264,16 +265,13 @@ static const command_rec count_memcookie_cmds[] =
         OR_FILEINFO, "\"hostname:port\" or just \"hostname\".  Ex: \"127.0.0.1:11211\""),
     AP_INIT_TAKE1("CountMemCookieMemcachedObjectExpiry", ap_set_int_slot,
         (void *)APR_OFFSETOF(count_memcookie_config, mem_expiry),
-        OR_FILEINFO, "expiry time of session object in memcached in secondes"),
+        OR_FILEINFO, "expiry time of session object in memcached in seconds"),
     AP_INIT_TAKE1("CountMemCookieMemcachedTableSize",ap_set_int_slot,
         (void *)APR_OFFSETOF(count_memcookie_config, mem_table_size),
         OR_FILEINFO, "Max number of element in session table of memcached. 100 by default"),
     AP_INIT_FLAG("CountMemCookieSetHTTPHeader",ap_set_flag_slot,
         (void *)APR_OFFSETOF(count_memcookie_config, set_header),
         OR_FILEINFO, "Set to \"On\" to set count information to http header. \"Off\" by default"),
-    AP_INIT_FLAG("CountMemCookieEncodeHTTPHeader",ap_set_flag_slot,
-        (void *)APR_OFFSETOF(count_memcookie_config, encode_header),
-        OR_FILEINFO, "Set to \"On\" to encode the count information to http header. \"Off\" by default"),
     {NULL}
 };
 
@@ -289,3 +287,6 @@ module AP_MODULE_DECLARE_DATA count_memcookie_module = {
     count_memcookie_register_hooks            /* register hooks                      */
 };
 
+/*
+ * vim:ts=4 et
+ */
