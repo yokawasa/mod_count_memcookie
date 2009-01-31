@@ -24,12 +24,11 @@ cookies to see how many times a user visited a site in a certain
 period of time.
 
 The couter is stored in memcached, and the user's cookie string is
-used as the key to determine the basic identification of the counter
-to be cached. Every time the user hit the site, the user's counter is
-retrieved from memcached by specifying the user cookie string, and
-is stored back again after the counter is incremented. If the
-counter does not exist in memcached, then the counter is
-initialized to 1.
+used as the key to identify the user's counter. Every time the user
+hit the site, the user's counter is retrieved from memcached by
+specifying the user cookie string, and is stored back again after
+the counter is incremented. If the counter does not exist in memcached,
+then the counter is initialized to 1.
 
 As one of prerequisites of mod_count_memcookie, it needs to be used
 in conjunction with a cookie creating module, such as mod_usertrack,
@@ -128,7 +127,7 @@ o CountMemCookieMemcachedObjectExpiry
 o CountMemCookieMemcachedTableSize
 
     Description: set max number of element in session table of memcached.
-            100 by default.
+            0 by default, no limit
     Syntax: CountMemCookieMemcachedTableSize number
     Context: server config, virtual host, directory, .htaccess
     Status: Extension
