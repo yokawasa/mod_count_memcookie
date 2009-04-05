@@ -33,9 +33,6 @@
 /* apache module name */
 module AP_MODULE_DECLARE_DATA count_memcookie_module;
 
-
-static apr_array_header_t *mem_addr_arr;
-
 typedef struct {
     int enabled;
     char *cookie_name;
