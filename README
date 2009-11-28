@@ -2,18 +2,6 @@
  * README
  * mod_count_memcookie.c - User Access Counter with Cookies and the Memcached
  */
-                        __                           __
-   ____ ___  ____  ____/ /   _________  __  ______  / /_
-  / __ `__ \/ __ \/ __  /   / ___/ __ \/ / / / __ \/ __/
- / / / / / / /_/ / /_/ /   / /__/ /_/ / /_/ / / / / /_
-/_/ /_/ /_/\____/\__,_/________/\____/\__,_/_/ /_/\__/_____
-                     /_____/                        /_____/
-                                              __   _
-   ____ ___  ___  ____ ___  _________  ____  / /__(_)__
-  / __ `__ \/ _ \/ __ `__ \/ ___/ __ \/ __ \/ //_/ / _ \
- / / / / / /  __/ / / / / / /__/ /_/ / /_/ / ,< / /  __/
-/_/ /_/ /_/\___/_/ /_/ /_/\___/\____/\____/_/|_/_/\___/
-
 
 ====================================================================
 * Introduction
@@ -56,10 +44,18 @@ http://code.google.com/p/modcountmemcookie/downloads/list
 o libevent - used by memcached
   http://www.monkey.org/~provos/libevent/
 
-o memcached - used as serssion and count storage
+o memcached - used as serssion and count storage.
+  In case of mod_count_memcookie-2.0.0 or up, memcached-1.4.0 or up,
+  which implements binary protocol, is highly recommended for
+  performance reanson.
   http://www.danga.com/memcached/
 
-o libmemcache - needed to compile mod_count_memcookie
+o libmemcached - needed to compile mod_count_memcookie-2.0.0 and up
+  http://tangent.org/552/libmemcached.html
+
+[note]
+  from mod_count_memcookie-2.0.0 or up, no longer use libmemcache to compile.
+  old version, mod_count_memcookie-1.X use libmemcache.
   http://people.freebsd.org/~seanc/libmemcache/
 
 
@@ -124,10 +120,11 @@ o CountMemCookieMemcachedObjectExpiry
     Module: mod_count_memcookie
 
 
-o CountMemCookieMemcachedTableSize
+o CountMemCookieMemcachedTableSize  [DEPRECATED with version 2.0.0 or up]
 
     Description: set max number of element in session table of memcached.
-            0 by default, no limit
+            0 by default, no limit.
+            [warning] this directive is deprecated in mod_count_memcookie-2.0.0.
     Syntax: CountMemCookieMemcachedTableSize number
     Context: server config, virtual host, directory, .htaccess
     Status: Extension
@@ -155,7 +152,6 @@ CountMemCookieEnabled on
 CountMemCookieName  apache
 CountMemCookieMemcachedAddrPort  127.0.0.1:11211
 CountMemCookieMemcachedObjectExpiry 1000
-CountMemCookieMemcachedTableSize  100
 CountMemCookieSetHTTPHeader on
 
 see also: sample.conf
