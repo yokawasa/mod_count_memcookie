@@ -1,6 +1,12 @@
+version 2.0.0 - Nov 25, 2009
+* deprecate CountMemCookieMemcachedTableSize directive.
+* no longer use libmemcache but libmemcached as memcached client lib.
+* improved pv count-up atomicity.
+* improved memcached address configuration.
+
 version 1.0.1 - Jan 31, 2009
-* fixup bug: memcached address configuration
-* changed CountMemCookieMemcachedTableSize directive' default value: 100 -> 0 (no limit)
+* fixup bug: memcached address configuration.
+* changed CountMemCookieMemcachedTableSize directive' default value: 100 -> 0 (no limit).
 
 version 1.0.0 - Jan 24, 2009
-* Initial Release
+* Initial Release.
