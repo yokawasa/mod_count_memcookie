@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __MEMCACHED_FUNCS_H__
-#define __MEMCACHED_FUNCS_H__
+#ifndef __MEMCACHED_CMEMCOOKIE_FUNCS_H__
+#define __MEMCACHED_CMEMCOOKIE_FUNCS_H__
 
 #include "httpd.h"
 #include "apr_tables.h"
@@ -25,11 +25,11 @@
 typedef struct {
     char *hostname;
     unsigned int port;
-} memc_addr_entry;
+} memc_addr_cmemcookie_entry;
 
-int memcached_init_func(request_rec *r, apr_array_header_t *memc_addrs);
-int memcached_get_func(request_rec *r, const char *key, char **val);
-int memcached_set_func(request_rec *r, const char *key, const char *val, time_t expire);
-int memcached_incr_func(request_rec *r, char *key, time_t expire, uint32_t *new_num );
+int memcached_init_cmemcookie_func(request_rec *r, apr_array_header_t *memc_addrs);
+int memcached_get_cmemcookie_func(request_rec *r, const char *key, char **val);
+int memcached_set_cmemcookie_func(request_rec *r, const char *key, const char *val, time_t expire);
+int memcached_incr_cmemcookie_func(request_rec *r, char *key, time_t expire, uint32_t *new_num );
 
-#endif //__MEMCACHED_FUNCS_H__
+#endif //__MEMCACHED_CMEMCOOKIE_FUNCS_H__

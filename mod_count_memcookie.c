@@ -61,7 +61,7 @@ static const char *set_cookie_name(cmd_parms *parms, void *mconfig, const char *
     return NULL;
 }
 
-static const char* parse_memc_addr(apr_pool_t *p, const char *val, memc_addr_entry *memc_addr)
+static const char* parse_memc_addr(apr_pool_t *p, const char *val, memc_addr_cmemcookie_entry *memc_addr)
 {
     char *next, *last;
     if ( !val||!memc_addr ) {
@@ -81,7 +81,7 @@ static const char *set_memc_addr(cmd_parms *parms, void *mconfig, const char *ar
     int i =0;
     const char *err;
     char *next, *last, *memc_addr_str;
-    memc_addr_entry *memc_addr;
+    memc_addr_cmemcookie_entry *memc_addr;
     count_memcookie_config *conf = mconfig;
     if (!conf){
         return "CountMemCookieModule: Failed to retrieve configuration for mod_count_memcookie";
@@ -94,7 +94,7 @@ static const char *set_memc_addr(cmd_parms *parms, void *mconfig, const char *ar
     next =  (char*)apr_strtok( memc_addr_str, ",", &last);
     while (next) {
         apr_collapse_spaces (next, next);
-        memc_addr = (memc_addr_entry *)apr_array_push(conf->memc_addrs);
+        memc_addr = (memc_addr_cmemcookie_entry *)apr_array_push(conf->memc_addrs);
         if( (err = parse_memc_addr(parms->pool, next, memc_addr))!=NULL ) {
             return apr_psprintf(parms->pool, "CountMemCookieModule: %s", err);
         }
@@ -141,7 +141,7 @@ static void* count_memcookie_create_dir_config(apr_pool_t *p, char *d)
     conf->enabled = 0;
     conf->cookie_name = NULL;
     conf->memc_expiry = 0;
-    conf->memc_addrs = apr_array_make(p, INIT_MEMC_ADDR, sizeof(memc_addr_entry));
+    conf->memc_addrs = apr_array_make(p, INIT_MEMC_ADDR, sizeof(memc_addr_cmemcookie_entry));
     conf->set_header = 0;
     return conf;
 }
@@ -183,12 +183,12 @@ static int set_memcookie_counter(request_rec *r, const char* key,
         return MEMC_MIN_COUNT;
     }
     // init memcached
-    ret = memcached_init_func(r, memc_addrs);
+    ret = memcached_init_cmemcookie_func(r, memc_addrs);
     if (ret < 0) {
         return MEMC_MIN_COUNT;
     }
     // increment count and get incremented count
-    ret = memcached_incr_func(r, (char*)key, memc_expiry, &incred_count);
+    ret = memcached_incr_cmemcookie_func(r, (char*)key, memc_expiry, &incred_count);
     if (ret < 0) {
         CMLOG_ERROR(r, MODTAG "increment count failure: USER KEY=%s", key );
         return MEMC_MIN_COUNT;

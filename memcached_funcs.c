@@ -25,7 +25,7 @@ static memcached_st *memc = NULL;
 static memcached_server_st *servers = NULL;
 
 static apr_status_t
-_cleanup_register_func(void *dummy)
+_cleanup_register_cmemcookie_func(void *dummy)
 {
     if(servers){
         memcached_server_list_free(servers);
@@ -38,10 +38,10 @@ _cleanup_register_func(void *dummy)
     return APR_SUCCESS;
 }
 
-int _init_func(request_rec *r, apr_array_header_t *memc_addrs)
+int _init_cmemcookie_func(request_rec *r, apr_array_header_t *memc_addrs)
 {
     int i;
-    memc_addr_entry *memc_addr, *ma;
+    memc_addr_cmemcookie_entry *memc_addr, *ma;
     memcached_return rc;
     memc = memcached_create(NULL);
     int binary_available = 0;
@@ -50,7 +50,7 @@ int _init_func(request_rec *r, apr_array_header_t *memc_addrs)
         return -1;
     }
     if(memc_addrs) {
-        ma = (memc_addr_entry *)memc_addrs->elts;
+        ma = (memc_addr_cmemcookie_entry *)memc_addrs->elts;
         if (memc_addrs->nelts < 1) {
             CMLOG_ERROR( r, MODTAG "no memcached server to push!");
             return -1;
@@ -115,19 +115,19 @@ int _init_func(request_rec *r, apr_array_header_t *memc_addrs)
             }
         }
     }
-    apr_pool_cleanup_register(r->pool, NULL, _cleanup_register_func, _cleanup_register_func);
+    apr_pool_cleanup_register(r->pool, NULL, _cleanup_register_cmemcookie_func, _cleanup_register_cmemcookie_func);
     return 0;
 }
 
-int memcached_init_func(request_rec *r, apr_array_header_t *memc_addrs)
+int memcached_init_cmemcookie_func(request_rec *r, apr_array_header_t *memc_addrs)
 {
     if (!memc) {
-        return _init_func(r, memc_addrs);
+        return _init_cmemcookie_func(r, memc_addrs);
     }
     return 0;
 }
 
-int memcached_get_func(request_rec *r, const char *key, char **val)
+int memcached_get_cmemcookie_func(request_rec *r, const char *key, char **val)
 {
     memcached_return rc;
     char *received;
@@ -149,7 +149,7 @@ int memcached_get_func(request_rec *r, const char *key, char **val)
     return 0;
 }
 
-int memcached_set_func(request_rec *r, const char *key, const char *val, time_t expire)
+int memcached_set_cmemcookie_func(request_rec *r, const char *key, const char *val, time_t expire)
 {
     memcached_return rc;
     if (!r || !key || !val) {
@@ -168,7 +168,7 @@ int memcached_set_func(request_rec *r, const char *key, const char *val, time_t 
     return 0;
 }
 
-int memcached_incr_func(request_rec *r, char *key, time_t expire, uint32_t *new_num )
+int memcached_incr_cmemcookie_func(request_rec *r, char *key, time_t expire, uint32_t *new_num )
 {
 // this increment interface is available only with binary protocol
 // as far as i've checked, unitl the version 0.34 it is the case.
@@ -179,12 +179,12 @@ int memcached_incr_func(request_rec *r, char *key, time_t expire, uint32_t *new_
         return -1;
     }
     if ( memcached_behavior_get(memc, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL) !=1 ) {
-        if ( memcached_get_func(r, key, &tmp) !=0 ) {
+        if ( memcached_get_cmemcookie_func(r, key, &tmp) !=0 ) {
             return -1;
         }
         _new_num = atoi(tmp) + 1;
         tmp = (char*)apr_psprintf(r->pool, "%d", _new_num);
-        if ( memcached_set_func(r, key, tmp, expire) !=0 ) {
+        if ( memcached_set_cmemcookie_func(r, key, tmp, expire) !=0 ) {
             return -1;
         }
     } else {
