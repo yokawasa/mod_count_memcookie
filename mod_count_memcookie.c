@@ -23,7 +23,6 @@
 #include "apr_strings.h"
 #include "apr_base64.h" // apr_base64_encode
 #include "commons.h"
-#include "memcache.h"
 #include "memcached_funcs.h"
 
 #define MEMC_MIN_COUNT  (1)
