@@ -50,8 +50,10 @@ o memcached - used as serssion and count storage.
   performance reanson.
   http://www.danga.com/memcached/
 
-o libmemcached - needed to compile mod_count_memcookie-2.0.0 and up
-  http://tangent.org/552/libmemcached.html
+o libmemcached - used as memcached c client library
+ http://libmemcached.org/libMemcached.html
+ needed to compile mod_count_memcookie-2.0.0 or up
+ use libmemcached-0.38 or up for mod_count_memcookie-2.0.1 or up
 
 [note]
   from mod_count_memcookie-2.0.0 or up, no longer use libmemcache to compile.
