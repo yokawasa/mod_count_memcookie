@@ -46,9 +46,8 @@ o libevent - used by memcached
 
 o memcached - used as serssion and count storage.
   In case of mod_count_memcookie-2.0.0 or up, memcached-1.4.0 or up,
-  which implements binary protocol, is highly recommended for
-  performance reanson.
-  http://www.danga.com/memcached/
+  which implements binary protocol, must be used
+  http://memcached.org/
 
 o libmemcached - used as memcached c client library
  http://libmemcached.org/libMemcached.html
