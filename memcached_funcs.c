@@ -17,9 +17,12 @@
 
 #include "httpd.h"
 #include "http_log.h"
+#include <inttypes.h>        //for PRIu64 definition
 #include <libmemcached/memcached.h>
 #include "commons.h"
 #include "memcached_funcs.h"
+#include "apr_strings.h"     //for apr_pstrdup, apr_psprintf definition
+
 
 static memcached_st *memc = NULL;
 static memcached_server_st *servers = NULL;
@@ -86,33 +89,11 @@ int _init_cmemcookie_func(request_rec *r, apr_array_header_t *memc_addrs)
         //  taking those 2 pre-requisites into consideration, for incr command to be used
         //  with libmemcached, memcached version has to be 1.4.0 or up.
         //
-        memcached_version(memc);
-        for ( i =0; i <memc->number_of_hosts; i++) {
-            if (memc->servers[i].major_version >= 1 && memc->servers[i].minor_version >= 4) {
-//                CMLOG_DEBUG(r, MODTAG "use \"incr command\" of memcached for count increment :"
-//                    "server=%s:%d major=%d minor=%d",
-//                    memc->servers[i].hostname,memc->servers[i].port,
-//                    memc->servers[i].major_version, memc->servers[i].minor_version);
-                    binary_available=1;
-            } else {
-                if (memc->servers[i].major_version != 0 && memc->servers[i].minor_version != 0) {
-                    CMLOG_DEBUG(r,
-                        MODTAG "memcached version has to be 1.4.0 or up for count increment "
-                        "to be done by \"incr command\" with libmemcached :"
-                        "server=%s:%d major=%d minor=%d",
-                        memc->servers[i].hostname,memc->servers[i].port,
-                        memc->servers[i].major_version, memc->servers[i].minor_version);
-                    binary_available=0;
-                }
-            }
-        }
-        if(binary_available) {
-            memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_NO_BLOCK, 0);
-            rc = memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, 1);
-            if (rc != MEMCACHED_SUCCESS) {
-                CMLOG_ERROR(r, MODTAG "memcached_behavior_set failed to enable binary protocol: rc=%d", rc);
-                return -1;
-            }
+        memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_NO_BLOCK, 0);
+        rc = memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, 1);
+        if (rc != MEMCACHED_SUCCESS) {
+            CMLOG_ERROR(r, MODTAG "memcached_behavior_set failed to enable binary protocol: rc=%d", rc);
+            return -1;
         }
     }
     apr_pool_cleanup_register(r->pool, NULL, _cleanup_register_cmemcookie_func, _cleanup_register_cmemcookie_func);
@@ -178,23 +159,12 @@ int memcached_incr_cmemcookie_func(request_rec *r, char *key, time_t expire, uin
     if (!r || !key) {
         return -1;
     }
-    if ( memcached_behavior_get(memc, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL) !=1 ) {
-        if ( memcached_get_cmemcookie_func(r, key, &tmp) !=0 ) {
-            return -1;
-        }
-        _new_num = atoi(tmp) + 1;
-        tmp = (char*)apr_psprintf(r->pool, "%d", _new_num);
-        if ( memcached_set_cmemcookie_func(r, key, tmp, expire) !=0 ) {
-            return -1;
-        }
-    } else {
-        rc= memcached_increment_with_initial(memc, key, strlen(key),
-                                             1, 1, expire, &_new_num);
-        if (rc != MEMCACHED_SUCCESS) {
-            CMLOG_ERROR(r, MODTAG "memcached_increment_with_initial failure: key=%s rc=%d msg=%s",
-                                     key, rc, memcached_strerror(memc, rc) );
-            return -1;
-        }
+    rc= memcached_increment_with_initial(memc, key, strlen(key),
+                                         1, 1, expire, &_new_num);
+    if (rc != MEMCACHED_SUCCESS) {
+        CMLOG_ERROR(r, MODTAG "memcached_increment_with_initial failure: key=%s rc=%d msg=%s",
+                                 key, rc, memcached_strerror(memc, rc) );
+        return -1;
     }
     *new_num = (uint32_t)_new_num;
     return 0;
