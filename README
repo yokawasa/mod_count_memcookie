@@ -151,12 +151,29 @@ LoadModule count_memcookie_module modules/mod_count_memcookie.so
 
 2) add directives below
 CountMemCookieEnabled on
-CountMemCookieName  apache
+CountMemCookieName  Apache
 CountMemCookieMemcachedAddrPort  127.0.0.1:11211
 CountMemCookieMemcachedObjectExpiry 1000
 CountMemCookieSetHTTPHeader on
 
-see also: sample.conf
+see also: sample_mod_count_memcookie.conf
+
+
+[note]
+As described in "Introduction" secion above, mod_count_memcookie 
+needs to be used in conjunction with a cookie creating module, 
+such as mod_usertrack, or some other substitution applications 
+since it uses the user's cookie string for the identification 
+of the user and its' counter value stored in memcached.
+
+Here is an example configuration for mod_usertrack:
+
+LoadModule usertrack_module modules/mod_usertrack.so
+CookieTracking on
+CookieName Apache
+CookieExpires "1 months"
+
+see also: sample_mod_usertrack.conf
 
 
 ====================================================================
