@@ -1,3 +1,9 @@
+2014-07-11 [Version 2.0.2 released]
+    * add a prerequiste for memcached version: memcached-1.4.0 or up
+    * fix: compile error and warning memcached_funcs.c
+    * rename sample.conf to sample_mod_count_memcookie.conf
+    * add sample_mod_usertrack.conf
+
 2013-02-17 [Version 2.0.1 released]
     * fix: remove unnecessary header file include statements - mod_count_memcookie.c
     * fix: Compile errors due to "no member exists in memcached_st struct"
