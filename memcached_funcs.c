@@ -47,7 +47,6 @@ int _init_cmemcookie_func(request_rec *r, apr_array_header_t *memc_addrs)
     memc_addr_cmemcookie_entry *memc_addr, *ma;
     memcached_return rc;
     memc = memcached_create(NULL);
-    int binary_available = 0;
     if (!memc) {
         CMLOG_ERROR( r, MODTAG "memcached_create failure!");
         return -1;
@@ -58,7 +57,6 @@ int _init_cmemcookie_func(request_rec *r, apr_array_header_t *memc_addrs)
             CMLOG_ERROR( r, MODTAG "no memcached server to push!");
             return -1;
         }
-        binary_available = 1;
         for ( i =0; i <memc_addrs->nelts; i++) {
             memc_addr =  &ma[i];
             if (i==0) {
